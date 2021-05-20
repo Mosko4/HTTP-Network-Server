@@ -357,7 +357,6 @@ void receiveMessage(int index)
 			}
 			else if (strncmp(sockets[index].buffer, "DELETE", 6) == 0)
 			{
-				strcpy(sockets[index].buffer, &sockets[index].buffer[8]);
 				sockets[index].send = SEND;
 				sockets[index].httpReq = R_DELETE;
 				return;
@@ -495,6 +494,7 @@ bool sendMessage(int index)
 
 		case R_DELETE:
 		{
+			strtok(&sockets[index].buffer[8], " ");
 			strcpy(tempBuff, &sockets[index].buffer[8]);
 			if (remove(tempBuff) != 0)
 			{
@@ -502,7 +502,7 @@ bool sendMessage(int index)
 			}
 			else
 			{
-				fullMessage = "HTTP/1.1 200 OK \r\nDate: ";
+				fullMessage = "HTTP/1.1 200 OK \r\nDate: "; // File deleted succesfully
 			}
 
 			fullMessage += ctime(&currentTime);
@@ -518,7 +518,18 @@ bool sendMessage(int index)
 
 		case TRACE:
 		{
-
+			fileSize = strlen("TRACE");
+			fileSize += strlen(sockets[index].buffer);
+			fullMessage = "HTTP/1.1 200 OK \r\nContent-type: message/http\r\nDate: ";
+			fullMessage += ctime(&currentTime);
+			fullMessage += "Content-length: ";
+			fileSizeString = _itoa(fileSize, tempBuff, 10);
+			fullMessage += fileSizeString;
+			fullMessage += "\r\n\r\n";
+			fullMessage += "TRACE";
+			fullMessage += sockets[index].buffer;
+			buffLen = fullMessage.size();
+			strcpy(sendBuff, fullMessage.c_str());
 			break;
 		}
 
