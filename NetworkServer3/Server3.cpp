@@ -495,6 +495,23 @@ bool sendMessage(int index)
 
 		case R_DELETE:
 		{
+			strcpy(tempBuff, &sockets[index].buffer[8]);
+			if (remove(tempBuff) != 0)
+			{
+				fullMessage = "HTTP/1.1 204 No Content \r\nDate: "; // We treat 204 code as a case where delete wasn't successful
+			}
+			else
+			{
+				fullMessage = "HTTP/1.1 200 OK \r\nDate: ";
+			}
+
+			fullMessage += ctime(&currentTime);
+			fullMessage += "Content-length: ";
+			fileSizeString = _itoa(fileSize, tempBuff, 10);
+			fullMessage += fileSizeString;
+			fullMessage += "\r\n\r\n";
+			buffLen = fullMessage.size();
+			strcpy(sendBuff, fullMessage.c_str());
 
 			break;
 		}
