@@ -398,50 +398,98 @@ bool sendMessage(int index)
 	char sendBuff[BUFF_SIZE];
 	char *tempFromTok;
 	char tempBuff[BUFF_SIZE], readBuff[BUFF_SIZE];
-	string fullMessage, fileSizeString;
+	string fullMessage, fileSizeString, innerAddress;
 	ifstream inFile;
 	time_t currentTime;
-	time(&currentTime);
+	time(&currentTime); // Get current time
 	SOCKET msgSocket = sockets[index].id;
-	sockets[index].prevActivity = time(0);
+	sockets[index].prevActivity = time(0); // Reset activity
 
 	switch (sockets[index].httpReq)
 	{
 		case HEAD:
 		{
-			/*tempFromTok = strtok(sockets[index].buffer, " ");
-			inFile.open(sockets[index].buffer);
+			tempFromTok = strtok(sockets[index].buffer, " ");
+			innerAddress = "C:\\Temp\\en\\index.html"; // we redirect to default english file
+			inFile.open(innerAddress);
 			if (!inFile)
 			{
-				cout << "HTTP Server: Error at send(): " << WSAGetLastError() << endl;
-				return false;
+				fullMessage = "HTTP/1.1 404 Not Found ";
+				fileSize = 0;
 			}
-			
-			fullMessage = "HTTP/1.1 200 OK\r\nDate: ";
+			else 
+			{
+				fullMessage = "HTTP/1.1 200 OK ";
+				inFile.seekg(0, ios::end);
+				fileSize = inFile.tellg(); // get length of content in file
+			}
+
+			fullMessage += "\r\nContent-type: text/html";
+			fullMessage += "\r\nDate:";
 			fullMessage += ctime(&currentTime);
-			fullMessage += "\r\nContent-type: text/html\r\n\r\n";
+			fullMessage += "Content-length: ";
+			fileSizeString = to_string(fileSize);
+			fullMessage += fileSizeString;
+			fullMessage += "\r\n\r\n";
 			buffLen = fullMessage.size();
 			strcpy(sendBuff, fullMessage.c_str());
 			inFile.close();
-			break;*/
+			break;
 		}
 
 		case GET:
 		{
-			/*tempFromTok = strtok(sockets[index].buffer, " ");
-			inFile.open(sockets[index].buffer);
-			if (!inFile)
+			string tempStringFromFile = ""; 
+			tempFromTok = strtok(sockets[index].buffer, " ");
+			innerAddress = "C:\\Temp\\"; // we redirect to default english file
+			char *langPtr = strchr(tempFromTok, '?'); // search if there are query params
+			if (langPtr == NULL) // default - english page
 			{
-				cout << "HTTP Server: Error at send(): " << WSAGetLastError() << endl;
-				return false;
+				innerAddress += "en";
+			}
+			else 
+			{
+				langPtr += 6; // skip to language param ('?lang=' is 6 chars)
+				for (int i = 0; i < 2; ++i, langPtr++) // extract language from parameters
+					innerAddress += *langPtr;
 			}
 
-			memset(tempBuff, 0, BUFF_SIZE);
-			fullMessage = tempBuff;
-			while (!inFile.getline(readBuff, BUFF_SIZE))
+			innerAddress += '\\';
+			tempFromTok = strtok(tempFromTok, "?");
+			innerAddress.append(tempFromTok);
+			inFile.open(innerAddress);
+			if (!inFile)
 			{
-			}*/
+				fullMessage = "HTTP/1.1 404 Not Found ";
+				fileSize = 0;
+			}
+			else
+			{
+				fullMessage = "HTTP/1.1 200 OK ";
+			}
 
+			if (inFile)
+			{
+				// Read from file to temp buffer and get its length
+				while (inFile.getline(readBuff, BUFF_SIZE))
+				{
+					tempStringFromFile += readBuff;
+					fileSize += strlen(readBuff);
+				}
+			}
+
+			fullMessage += "\r\nContent-type: text/html";
+			fullMessage += "\r\nDate:";
+			fullMessage += ctime(&currentTime);
+			fullMessage += "Content-length: ";
+			fileSizeString = to_string(fileSize);
+			fullMessage += fileSizeString;
+			fullMessage += "\r\n\r\n";
+			fullMessage += tempStringFromFile; // Get content
+			buffLen = fullMessage.size();
+			strcpy(sendBuff, fullMessage.c_str());
+			inFile.close();
+			break;
 		}
 
 		case PUT:
@@ -484,7 +532,7 @@ bool sendMessage(int index)
 
 			fullMessage += ctime(&currentTime);
 			fullMessage += "Content-length: ";
-			fileSizeString = _itoa(fileSize, tempBuff, 10);
+			fileSizeString = to_string(fileSize);
 			fullMessage += fileSizeString;
 			fullMessage += "\r\n\r\n";
 			buffLen = fullMessage.size();
@@ -507,12 +555,11 @@ bool sendMessage(int index)
 
 			fullMessage += ctime(&currentTime);
 			fullMessage += "Content-length: ";
-			fileSizeString = _itoa(fileSize, tempBuff, 10);
+			fileSizeString = to_string(fileSize);
 			fullMessage += fileSizeString;
 			fullMessage += "\r\n\r\n";
 			buffLen = fullMessage.size();
 			strcpy(sendBuff, fullMessage.c_str());
-
 			break;
 		}
 
@@ -523,7 +570,7 @@ bool sendMessage(int index)
 			fullMessage = "HTTP/1.1 200 OK \r\nContent-type: message/http\r\nDate: ";
 			fullMessage += ctime(&currentTime);
 			fullMessage += "Content-length: ";
-			fileSizeString = _itoa(fileSize, tempBuff, 10);
+			fileSizeString = to_string(fileSize);
 			fullMessage += fileSizeString;
 			fullMessage += "\r\n\r\n";
 			fullMessage += "TRACE";
@@ -543,7 +590,15 @@ bool sendMessage(int index)
 
 		case POST:
 		{
-			
+			fullMessage = "HTTP/1.1 200 OK \r\nDate:";
+			fullMessage += ctime(&currentTime);
+			fullMessage += "\r\n\r\n";
+			char* messagePtr = strstr(sockets[index].buffer, "\r\n\r\n"); // Skip to body content
+			cout << "==================\nMessage received\n\n==================\n" 
+				<< messagePtr + 4 << "\n==================\n\n";
+			buffLen = fullMessage.size();
+			strcpy(sendBuff, fullMessage.c_str());
+			break;
 		}
 	}
 
@@ -597,7 +652,7 @@ int PutRequest(int index, char* filename)
 	}
 	else
 	{
-		while (*tempPtr != '\0')
+		while (*tempPtr != '\0') // Write to file
 		{
 			outPutFile << tempPtr;
 			tempPtr += (strlen(tempPtr) + 1);
