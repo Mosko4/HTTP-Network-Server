@@ -340,7 +340,8 @@ bool sendMessage(int index, SocketState* sockets)
 
 		case OPTIONS:
 		{
-			fullMessage = "HTTP/1.1 204 No Content\r\nAllow: OPTIONS, GET, HEAD, POST, PUT, TRACE, DELETE\r\n\r\n";
+			fullMessage = "HTTP/1.1 204 No Content\r\nAllow: OPTIONS, GET, HEAD, POST, PUT, TRACE, DELETE\r\n";
+			fullMessage += "Content-length: 0\r\n\r\n";
 			buffLen = fullMessage.size();
 			strcpy(sendBuff, fullMessage.c_str());
 			break;
@@ -350,7 +351,7 @@ bool sendMessage(int index, SocketState* sockets)
 		{
 			fullMessage = "HTTP/1.1 200 OK \r\nDate:";
 			fullMessage += ctime(&currentTime);
-			fullMessage += "\r\n\r\n";
+			fullMessage += "Content-length: 0\r\n\r\n";
 			char* messagePtr = strstr(sockets[index].buffer, "\r\n\r\n"); // Skip to body content
 			cout << "==================\nMessage received\n\n==================\n"
 				<< messagePtr + 4 << "\n==================\n\n";
