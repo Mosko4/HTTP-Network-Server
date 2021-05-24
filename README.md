@@ -10,3 +10,8 @@ Requests supported:
 - TRACE
 - DELETE
 - HEAD
+
+
+
+*Prerequisites for this server*
+- Extract zip file into "C:\Temp"
